@@ -187,9 +187,6 @@ public class Musicadle {
             Album album = new Album();
             album.name = albumData.get("name").asText();
             album.releaseDate = albumData.get("release_date").asText();
-            if (albumData.has("images") && albumData.get("images").size() > 0) {
-                album.imageUrl = albumData.get("images").get(0).get("url").asText();
-            }
             album.tracks = new ArrayList<>();
 
             for (JsonNode trackItem : albumData.get("tracks").get("items")) {
@@ -199,10 +196,6 @@ public class Musicadle {
                 track.duration = trackItem.get("duration_ms").asInt() / 1000.0;
                 track.features = trackItem.get("artists").size() > 1;
                 track.explicit = trackItem.get("explicit").asBoolean();
-                track.artists = new ArrayList<>();
-                for (JsonNode artistNode : trackItem.get("artists")) {
-                    track.artists.add(artistNode.get("name").asText());
-                }
 
                 album.tracks.add(track);
             }
@@ -238,21 +231,16 @@ public class Musicadle {
         state.board = new Board();
 
         Map<String, TrackSelection> trackLookup = new HashMap<>();
-        List<String> displayTracks = new ArrayList<>();
         for (Album album : albums) {
             for (Track track : album.tracks) {
                 String key = track.name.toLowerCase();
-                if (!trackLookup.containsKey(key)) {
-                    trackLookup.put(key, new TrackSelection(track, album));
-                    displayTracks.add(track.name);
-                }
+                trackLookup.putIfAbsent(key, new TrackSelection(track, album));
             }
         }
 
         state.trackLookup = trackLookup;
-        state.possibleTracks = new ArrayList<>(displayTracks);
-        state.possibleTracks.sort(String::compareToIgnoreCase);
-        state.randomAlbumImageUrl = state.randomAlbum.imageUrl;
+        state.possibleTracks = new ArrayList<>(trackLookup.keySet());
+        Collections.sort(state.possibleTracks);
 
         return state;
     }
@@ -455,7 +443,6 @@ public class Musicadle {
                 response.put("artistName", state.artistName);
                 response.put("message", "Juego iniciado. ¡Comienza a adivinar!");
                 response.set("board", mapper.valueToTree(state.board));
-                response.set("card", buildCardState(state));
                 response.put("lives", state.lives);
                 response.put("attempts", state.attempts);
                 response.put("win", state.win);
@@ -524,7 +511,6 @@ public class Musicadle {
                 response.put("over", state.over());
                 response.put("answer", state.over() ? state.randomTrack.name : "");
                 response.set("board", mapper.valueToTree(state.board));
-                response.set("card", buildCardState(state));
 
                 sendJson(exchange, 200, response);
             } catch (Exception e) {
@@ -532,56 +518,6 @@ public class Musicadle {
                 sendJson(exchange, 500, Map.of("error", "Error al procesar el intento: " + e.getMessage()));
             }
         }
-    }
-
-    private static ObjectNode buildCardState(GameState state) {
-        boolean revealAll = state.over();
-        boolean albumRevealed = revealAll || state.board.hasAlbumMatch();
-        boolean collaboratorsRevealed = revealAll || state.board.hasFeatureMatch();
-        boolean trackRevealed = revealAll || state.win;
-        boolean trackNumberKnown = revealAll || state.board.hasTrackNumberMatch();
-        boolean explicitKnown = revealAll || state.board.hasExplicitMatch();
-
-        ObjectNode node = mapper.createObjectNode();
-        node.put("albumRevealed", albumRevealed);
-        node.put("collaboratorsRevealed", collaboratorsRevealed);
-        node.put("trackRevealed", trackRevealed);
-        node.put("trackNumberKnown", trackNumberKnown);
-        node.put("explicitKnown", explicitKnown);
-        node.put("albumName", albumRevealed ? state.randomAlbum.name : "");
-        node.put("albumImage", albumRevealed ? Optional.ofNullable(state.randomAlbumImageUrl).orElse("") : "");
-        String releaseDate = Optional.ofNullable(state.randomAlbum.releaseDate).orElse("");
-        String releaseYear = releaseDate.length() >= 4 ? releaseDate.substring(0, 4) : releaseDate;
-        node.put("releaseYear", albumRevealed ? releaseYear : "");
-
-        String displayArtist;
-        if (collaboratorsRevealed) {
-            displayArtist = String.join(", ", state.randomTrack.artists);
-        } else {
-            displayArtist = state.artistName + " ...";
-        }
-        node.put("artists", displayArtist);
-        node.put("hasCollaborators", state.randomTrack.artists.size() > 1);
-
-        if (trackRevealed) {
-            node.put("trackName", state.randomTrack.name);
-        } else {
-            node.put("trackName", "");
-        }
-
-        if (trackNumberKnown) {
-            node.put("trackNumber", state.randomTrack.trackNumber);
-        } else {
-            node.put("trackNumber", 0);
-        }
-
-        if (explicitKnown) {
-            node.put("explicit", state.randomTrack.explicit);
-        } else {
-            node.put("explicit", false);
-        }
-
-        return node;
     }
 
     static class TrackSelection {
@@ -612,13 +548,11 @@ public class Musicadle {
         double duration;
         boolean features;
         boolean explicit;
-        List<String> artists = new ArrayList<>();
     }
 
     static class Album {
         String name;
         String releaseDate;
-        String imageUrl;
         List<Track> tracks;
     }
 
@@ -662,30 +596,6 @@ public class Musicadle {
             if (str.length() <= maxLen) return str;
             return str.substring(0, maxLen - 3) + "...";
         }
-
-        boolean hasAlbumMatch() {
-            return Arrays.stream(album)
-                    .filter(Objects::nonNull)
-                    .anyMatch(value -> value.contains("✅"));
-        }
-
-        boolean hasFeatureMatch() {
-            return Arrays.stream(ft)
-                    .filter(Objects::nonNull)
-                    .anyMatch(value -> value.contains("✅"));
-        }
-
-        boolean hasTrackNumberMatch() {
-            return Arrays.stream(trackNo)
-                    .filter(Objects::nonNull)
-                    .anyMatch(value -> value.contains("✅"));
-        }
-
-        boolean hasExplicitMatch() {
-            return Arrays.stream(explicit)
-                    .filter(Objects::nonNull)
-                    .anyMatch(value -> value.contains("✅"));
-        }
     }
 
     static class GameState {
@@ -697,7 +607,6 @@ public class Musicadle {
         Board board;
         Map<String, TrackSelection> trackLookup;
         List<String> possibleTracks;
-        String randomAlbumImageUrl;
         Set<String> guesses = new HashSet<>();
         int lives = 8;
         int attempts = 0;
