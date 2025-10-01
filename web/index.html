@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Musicadle Web</title>
+    <title>Musicadle</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         :root {
@@ -235,13 +235,13 @@
 </head>
 <body>
 <div class="container">
-    <h1>🎵 Musicadle Web</h1>
-    <p class="subtitle">Adivina la canción utilizando el catálogo en tiempo real de Spotify.</p>
+    <h1>🎵 Musicadle</h1>
+    <p class="subtitle">Adiviná la canción del artista que quieras.</p>
 
     <div id="status" class="status hidden"></div>
 
     <form id="artist-form" class="artist-controls">
-        <label for="artist">Elige el artista</label>
+        <label for="artist">Elegí un artista</label>
         <input id="artist" name="artist" type="text" placeholder="Introduce un artista" required>
         <div class="form-actions">
             <button id="start-btn" type="submit">Comenzar partida</button>
@@ -250,7 +250,6 @@
     </form>
 
     <div id="game-area" class="hidden">
-        <h2 id="artist-title"></h2>
         <form id="guess-form">
             <label for="guess">¿Cuál es la canción?</label>
             <div class="guess-field">
@@ -286,7 +285,6 @@
     const feedbackBox = document.getElementById('feedback');
     const boardBody = document.getElementById('board-body');
     const trackList = document.getElementById('track-list');
-    const artistTitle = document.getElementById('artist-title');
     const gameArea = document.getElementById('game-area');
     const artistForm = document.getElementById('artist-form');
     const artistInput = document.getElementById('artist');
@@ -294,6 +292,7 @@
     const startButton = document.getElementById('start-btn');
     const guessForm = document.getElementById('guess-form');
     const guessInput = document.getElementById('guess');
+    const guessButton = guessForm.querySelector('button[type="submit"]');
     const suggestionsBox = document.getElementById('track-suggestions');
 
     let gameId = null;
@@ -390,11 +389,12 @@
         boardBody.innerHTML = '';
         trackList.innerHTML = '';
         renderSuggestions('');
-        artistTitle.textContent = '';
         showMessage(statusBox, '', 'info');
         showMessage(feedbackBox, '', 'info');
         gameArea.classList.add('hidden');
         guessForm.reset();
+        guessInput.disabled = false;
+        guessButton.disabled = false;
     }
 
     artistForm.addEventListener('submit', async (event) => {
@@ -416,13 +416,14 @@
             }
 
             gameId = data.gameId;
-            artistTitle.textContent = `Adivina la canción de ${data.artistName}`;
             renderBoard(data.board);
             populateTracks(data.possibleTracks);
-            showMessage(statusBox, data.message, 'info');
+            showMessage(statusBox, '', 'info');
             showMessage(feedbackBox, '', 'info');
             gameArea.classList.remove('hidden');
             lockArtistInput(data.artistName);
+            guessInput.disabled = false;
+            guessButton.disabled = false;
             guessInput.focus();
         } catch (error) {
             console.error(error);
@@ -461,7 +462,12 @@
             showMessage(feedbackBox, `${data.message} ${data.feedback}`.trim(), feedbackType);
             guessForm.reset();
             renderSuggestions('');
-            guessInput.focus();
+            if (data.over) {
+                guessInput.disabled = true;
+                guessButton.disabled = true;
+            } else {
+                guessInput.focus();
+            }
 
             if (data.over) {
                 gameId = null;

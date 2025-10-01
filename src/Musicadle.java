@@ -67,7 +67,7 @@ public class Musicadle {
     private static void runCli() {
         Scanner scanner = new Scanner(System.in);
 
-        System.out.print("Elige el artista: ");
+        System.out.print("Elegí un artista: ");
         String artistName = scanner.nextLine();
 
         System.out.println("🎵 Iniciando Musicadle... 🎵");
