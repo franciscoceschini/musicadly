@@ -27,7 +27,7 @@
         }
 
         .container {
-            width: min(960px, 100%);
+            width: min(1080px, 100%);
             background: var(--card);
             border-radius: 18px;
             padding: 2.5rem 2rem;
@@ -220,6 +220,133 @@
             display: none !important;
         }
 
+        .game-layout {
+            margin-top: 2rem;
+            display: grid;
+            gap: 2rem;
+            grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+            align-items: start;
+        }
+
+        .board-column {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .music-card {
+            background: rgba(15, 23, 42, 0.7);
+            border-radius: 20px;
+            padding: 1.75rem;
+            box-shadow: 0 20px 35px rgba(15, 23, 42, 0.45);
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .album-frame {
+            position: relative;
+            width: 100%;
+            padding-top: 100%;
+            border-radius: 16px;
+            overflow: hidden;
+            background: linear-gradient(135deg, rgba(30, 64, 175, 0.5), rgba(30, 64, 175, 0.2));
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
+        .album-art {
+            position: absolute;
+            inset: 0;
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.3s ease;
+        }
+
+        .album-placeholder {
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            color: rgba(226, 232, 240, 0.35);
+        }
+
+        .album-art.has-image .album-placeholder {
+            display: none;
+        }
+
+        .track-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .artist-line {
+            color: var(--muted);
+            margin-top: 0.3rem;
+        }
+
+        .card-details {
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: var(--muted);
+        }
+
+        .detail-row strong {
+            color: var(--text);
+        }
+
+        .card-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .icon-btn {
+            width: 2.4rem;
+            height: 2.4rem;
+            border-radius: 50%;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            color: inherit;
+            cursor: pointer;
+        }
+
+        .icon-btn svg {
+            width: 1.1rem;
+            height: 1.1rem;
+        }
+
+        .icon-btn.play {
+            width: 3.2rem;
+            height: 3.2rem;
+            background: linear-gradient(135deg, #22d3ee, #0ea5e9);
+            color: #0f172a;
+            border: none;
+        }
+
+        .icon-btn:disabled {
+            opacity: 0.35;
+            cursor: default;
+        }
+
+        @media (max-width: 1024px) {
+            .game-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .music-card {
+                order: -1;
+            }
+        }
+
         @media (max-width: 720px) {
             body {
                 padding: 1.5rem 1rem;
@@ -261,22 +388,94 @@
 
         <div id="feedback" class="status hidden"></div>
 
-        <table>
-            <thead>
-            <tr>
-                <th>Nombre</th>
-                <th>Álbum</th>
-                <th>#</th>
-                <th>Duración</th>
-                <th>Colab.</th>
-                <th>Explicita</th>
-            </tr>
-            </thead>
-            <tbody id="board-body"></tbody>
-        </table>
+        <div class="game-layout">
+            <div class="board-column">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Álbum</th>
+                        <th>#</th>
+                        <th>Duración</th>
+                        <th>Colab.</th>
+                        <th>Explicita</th>
+                    </tr>
+                    </thead>
+                    <tbody id="board-body"></tbody>
+                </table>
 
-        <h3>Canciones disponibles</h3>
-        <div id="track-list" class="track-list"></div>
+                <div>
+                    <h3>Canciones disponibles</h3>
+                    <div id="track-list" class="track-list"></div>
+                </div>
+            </div>
+
+            <aside class="music-card" aria-live="polite">
+                <div class="album-frame">
+                    <div id="card-album-art" class="album-art">
+                        <span class="album-placeholder">Arte del álbum</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="track-title" id="card-track-title">Canción misteriosa</div>
+                    <div class="artist-line" id="card-artists">Artista ...</div>
+                </div>
+                <div class="card-details">
+                    <div class="detail-row">
+                        <span>Álbum</span>
+                        <strong id="card-album-name">Desconocido</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>Lanzamiento</span>
+                        <strong id="card-release">—</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>Duración</span>
+                        <strong id="card-duration">--:--</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>Pista</span>
+                        <strong id="card-track-number"># ?</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>Explicita</span>
+                        <strong id="card-explicit">—</strong>
+                    </div>
+                </div>
+                <div class="card-controls">
+                    <button class="icon-btn" type="button" aria-label="Retroceder">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="19 20 9 12 19 4 19 20"></polygon>
+                            <line x1="5" y1="19" x2="5" y2="5"></line>
+                        </svg>
+                    </button>
+                    <button class="icon-btn play" type="button" aria-label="Reproducir">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <polygon points="8,5 19,12 8,19"></polygon>
+                        </svg>
+                    </button>
+                    <button class="icon-btn" type="button" aria-label="Avanzar">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="5 4 15 12 5 20 5 4"></polygon>
+                            <line x1="19" y1="5" x2="19" y2="19"></line>
+                        </svg>
+                    </button>
+                    <button class="icon-btn" type="button" aria-label="Aleatorio">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="4 4 9 4 21 16"></polyline>
+                            <polyline points="21 8 21 16 13 16"></polyline>
+                            <line x1="15" y1="4" x2="21" y2="10"></line>
+                            <line x1="4" y1="20" x2="9" y2="15"></line>
+                        </svg>
+                    </button>
+                    <button class="icon-btn" type="button" aria-label="Favorito">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </aside>
+        </div>
     </div>
 </div>
 
@@ -294,6 +493,14 @@
     const guessInput = document.getElementById('guess');
     const guessButton = guessForm.querySelector('button[type="submit"]');
     const suggestionsBox = document.getElementById('track-suggestions');
+    const albumArt = document.getElementById('card-album-art');
+    const cardTrackTitle = document.getElementById('card-track-title');
+    const cardArtists = document.getElementById('card-artists');
+    const cardAlbum = document.getElementById('card-album-name');
+    const cardRelease = document.getElementById('card-release');
+    const cardDuration = document.getElementById('card-duration');
+    const cardTrackNumber = document.getElementById('card-track-number');
+    const cardExplicit = document.getElementById('card-explicit');
 
     let gameId = null;
     let availableTracks = [];
@@ -330,6 +537,45 @@
             trackList.appendChild(span);
         });
         renderSuggestions('');
+    }
+
+    function updateMusicCard(card) {
+        if (!card) {
+            albumArt.classList.remove('revealed');
+            albumArt.classList.remove('has-image');
+            albumArt.style.backgroundImage = '';
+            cardTrackTitle.textContent = 'Canción misteriosa';
+            cardArtists.textContent = 'Artista ...';
+            cardAlbum.textContent = 'Desconocido';
+            cardRelease.textContent = '—';
+            cardDuration.textContent = '--:--';
+            cardTrackNumber.textContent = '# ?';
+            cardExplicit.textContent = '—';
+            return;
+        }
+
+        albumArt.classList.toggle('revealed', !!card.albumRevealed);
+
+        if (card.albumRevealed && card.albumImage) {
+            albumArt.classList.add('has-image');
+            albumArt.style.backgroundImage = `url(${card.albumImage})`;
+        } else {
+            albumArt.classList.remove('has-image');
+            albumArt.style.backgroundImage = '';
+        }
+
+        cardTrackTitle.textContent = card.trackRevealed && card.trackName ? card.trackName : 'Canción misteriosa';
+        cardArtists.textContent = card.artists || 'Artista ...';
+        cardAlbum.textContent = card.albumRevealed && card.albumName ? card.albumName : 'Desconocido';
+        cardRelease.textContent = card.albumRevealed && card.releaseYear ? card.releaseYear : '—';
+        cardDuration.textContent = card.trackRevealed && card.duration ? card.duration : '--:--';
+        cardTrackNumber.textContent = card.trackRevealed && card.trackNumber ? `# ${card.trackNumber}` : '# ?';
+
+        if (card.trackRevealed) {
+            cardExplicit.textContent = card.explicit ? 'Sí' : 'No';
+        } else {
+            cardExplicit.textContent = '—';
+        }
     }
 
     function renderSuggestions(query) {
@@ -395,6 +641,7 @@
         guessForm.reset();
         guessInput.disabled = false;
         guessButton.disabled = false;
+        updateMusicCard(null);
     }
 
     artistForm.addEventListener('submit', async (event) => {
@@ -418,6 +665,7 @@
             gameId = data.gameId;
             renderBoard(data.board);
             populateTracks(data.possibleTracks);
+            updateMusicCard(data.card);
             showMessage(statusBox, '', 'info');
             showMessage(feedbackBox, '', 'info');
             gameArea.classList.remove('hidden');
@@ -462,6 +710,7 @@
             showMessage(feedbackBox, `${data.message} ${data.feedback}`.trim(), feedbackType);
             guessForm.reset();
             renderSuggestions('');
+            updateMusicCard(data.card);
             if (data.over) {
                 guessInput.disabled = true;
                 guessButton.disabled = true;
