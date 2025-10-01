@@ -53,6 +53,12 @@
             margin-bottom: 2rem;
         }
 
+        .artist-controls .form-actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
         label {
             font-weight: 600;
             letter-spacing: 0.02em;
@@ -74,6 +80,14 @@
             box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.3);
         }
 
+        input.locked {
+            background: rgba(34, 211, 238, 0.15);
+            border-color: rgba(34, 211, 238, 0.65);
+            color: #0f172a;
+            font-weight: 600;
+            cursor: not-allowed;
+        }
+
         button {
             cursor: pointer;
             background: linear-gradient(135deg, #22d3ee, #0ea5e9);
@@ -84,6 +98,23 @@
 
         button:hover {
             transform: translateY(-1px);
+        }
+
+        button.secondary {
+            background: transparent;
+            color: var(--text);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+        }
+
+        button.secondary:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
         }
 
         .status {
@@ -142,6 +173,49 @@
             font-size: 0.85rem;
         }
 
+        .guess-field {
+            position: relative;
+        }
+
+        .suggestions {
+            position: absolute;
+            top: calc(100% + 0.25rem);
+            left: 0;
+            right: 0;
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            border-radius: 12px;
+            padding: 0.35rem 0;
+            box-shadow: 0 15px 30px rgba(15, 23, 42, 0.45);
+            z-index: 10;
+            max-height: 240px;
+            overflow-y: auto;
+        }
+
+        .suggestions button {
+            width: 100%;
+            text-align: left;
+            padding: 0.65rem 1rem;
+            background: transparent;
+            color: inherit;
+            border: none;
+            border-radius: 0;
+            font-weight: 500;
+        }
+
+        .suggestions button:hover,
+        .suggestions button:focus {
+            background: rgba(34, 211, 238, 0.15);
+            border: none;
+            color: var(--accent);
+        }
+
+        .suggestions-empty {
+            padding: 0.65rem 1rem;
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+
         .hidden {
             display: none !important;
         }
@@ -166,18 +240,23 @@
 
     <div id="status" class="status hidden"></div>
 
-    <form id="artist-form">
+    <form id="artist-form" class="artist-controls">
         <label for="artist">Elige el artista</label>
         <input id="artist" name="artist" type="text" placeholder="Introduce un artista" required>
-        <button type="submit">Comenzar partida</button>
+        <div class="form-actions">
+            <button id="start-btn" type="submit">Comenzar partida</button>
+            <button id="restart-btn" type="button" class="secondary" disabled>Reiniciar</button>
+        </div>
     </form>
 
     <div id="game-area" class="hidden">
         <h2 id="artist-title"></h2>
         <form id="guess-form">
             <label for="guess">¿Cuál es la canción?</label>
-            <input id="guess" name="guess" type="text" list="track-options" placeholder="Escribe tu intento" required>
-            <datalist id="track-options"></datalist>
+            <div class="guess-field">
+                <input id="guess" name="guess" type="text" placeholder="Escribe tu intento" autocomplete="off" required>
+                <div id="track-suggestions" class="suggestions hidden"></div>
+            </div>
             <button type="submit">Enviar intento</button>
         </form>
 
@@ -206,12 +285,19 @@
     const statusBox = document.getElementById('status');
     const feedbackBox = document.getElementById('feedback');
     const boardBody = document.getElementById('board-body');
-    const trackOptions = document.getElementById('track-options');
     const trackList = document.getElementById('track-list');
     const artistTitle = document.getElementById('artist-title');
     const gameArea = document.getElementById('game-area');
+    const artistForm = document.getElementById('artist-form');
+    const artistInput = document.getElementById('artist');
+    const restartButton = document.getElementById('restart-btn');
+    const startButton = document.getElementById('start-btn');
+    const guessForm = document.getElementById('guess-form');
+    const guessInput = document.getElementById('guess');
+    const suggestionsBox = document.getElementById('track-suggestions');
 
     let gameId = null;
+    let availableTracks = [];
 
     function showMessage(element, message, type = 'info') {
         if (!message) {
@@ -237,23 +323,84 @@
     }
 
     function populateTracks(tracks) {
-        trackOptions.innerHTML = '';
+        availableTracks = Array.isArray(tracks) ? tracks.slice() : [];
         trackList.innerHTML = '';
-        tracks.forEach(track => {
-            const option = document.createElement('option');
-            option.value = track;
-            trackOptions.appendChild(option);
-
+        availableTracks.forEach(track => {
             const span = document.createElement('span');
             span.textContent = track;
             trackList.appendChild(span);
         });
+        renderSuggestions('');
     }
 
-    document.getElementById('artist-form').addEventListener('submit', async (event) => {
+    function renderSuggestions(query) {
+        suggestionsBox.innerHTML = '';
+        const term = query.trim().toLowerCase();
+
+        if (!term) {
+            suggestionsBox.classList.add('hidden');
+            return;
+        }
+
+        const matches = availableTracks.filter(track => track.toLowerCase().includes(term)).slice(0, 8);
+
+        if (!matches.length) {
+            const empty = document.createElement('div');
+            empty.className = 'suggestions-empty';
+            empty.textContent = 'No se encontraron coincidencias.';
+            suggestionsBox.appendChild(empty);
+            suggestionsBox.classList.remove('hidden');
+            return;
+        }
+
+        matches.forEach(track => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = track;
+            button.addEventListener('mousedown', (event) => {
+                event.preventDefault();
+                guessInput.value = track;
+                suggestionsBox.classList.add('hidden');
+            });
+            suggestionsBox.appendChild(button);
+        });
+
+        suggestionsBox.classList.remove('hidden');
+    }
+
+    function lockArtistInput(name) {
+        artistInput.value = name;
+        artistInput.disabled = true;
+        artistInput.classList.add('locked');
+        startButton.disabled = true;
+        restartButton.disabled = false;
+    }
+
+    function unlockArtistInput() {
+        artistInput.disabled = false;
+        artistInput.classList.remove('locked');
+        startButton.disabled = false;
+        restartButton.disabled = true;
+        artistInput.focus();
+    }
+
+    function resetGameState() {
+        gameId = null;
+        availableTracks = [];
+        boardBody.innerHTML = '';
+        trackList.innerHTML = '';
+        renderSuggestions('');
+        artistTitle.textContent = '';
+        showMessage(statusBox, '', 'info');
+        showMessage(feedbackBox, '', 'info');
+        gameArea.classList.add('hidden');
+        guessForm.reset();
+    }
+
+    artistForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         showMessage(statusBox, 'Iniciando juego...', 'info');
-        const artist = event.target.artist.value.trim();
+        const artist = artistInput.value.trim();
 
         try {
             const response = await fetch('/api/game', {
@@ -275,22 +422,22 @@
             showMessage(statusBox, data.message, 'info');
             showMessage(feedbackBox, '', 'info');
             gameArea.classList.remove('hidden');
-            event.target.reset();
-            document.getElementById('guess').focus();
+            lockArtistInput(data.artistName);
+            guessInput.focus();
         } catch (error) {
             console.error(error);
             showMessage(statusBox, error.message, 'error');
         }
     });
 
-    document.getElementById('guess-form').addEventListener('submit', async (event) => {
+    guessForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         if (!gameId) {
             showMessage(feedbackBox, 'Primero inicia un juego.', 'error');
             return;
         }
 
-        const guess = event.target.guess.value.trim();
+        const guess = guessInput.value.trim();
         if (!guess) {
             showMessage(feedbackBox, 'Escribe el nombre de la canción.', 'error');
             return;
@@ -310,19 +457,37 @@
             }
 
             renderBoard(data.board);
-            showMessage(feedbackBox, `${data.message} ${data.feedback}`, data.win || data.over ? 'info' : 'info');
-            event.target.reset();
-            document.getElementById('guess').focus();
+            const feedbackType = data.win ? 'info' : (data.over ? 'error' : 'info');
+            showMessage(feedbackBox, `${data.message} ${data.feedback}`.trim(), feedbackType);
+            guessForm.reset();
+            renderSuggestions('');
+            guessInput.focus();
 
             if (data.over) {
-                if (!data.win && data.answer) {
-                    showMessage(feedbackBox, `${data.message} ${data.feedback}`, 'error');
-                }
                 gameId = null;
+                restartButton.focus();
             }
         } catch (error) {
             showMessage(feedbackBox, error.message, 'error');
         }
+    });
+
+    restartButton.addEventListener('click', () => {
+        resetGameState();
+        unlockArtistInput();
+        artistInput.value = '';
+    });
+
+    guessInput.addEventListener('input', (event) => {
+        renderSuggestions(event.target.value);
+    });
+
+    guessInput.addEventListener('focus', (event) => {
+        renderSuggestions(event.target.value);
+    });
+
+    guessInput.addEventListener('blur', () => {
+        setTimeout(() => suggestionsBox.classList.add('hidden'), 120);
     });
 </script>
 </body>

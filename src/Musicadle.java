@@ -330,7 +330,7 @@ public class Musicadle {
         }
 
         if (state.lives == 0) {
-            return new GuessResult(true, "Sin intentos restantes. La canción era " + state.randomTrack.name + ".", summary(state));
+            return new GuessResult(true, "Sin intentos restantes.", summary(state));
         }
 
         return new GuessResult(true, "Sigue intentando. Te quedan " + state.lives + " intentos.", summary(state));
