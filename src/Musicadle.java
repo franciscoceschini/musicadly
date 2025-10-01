@@ -539,11 +539,15 @@ public class Musicadle {
         boolean albumRevealed = revealAll || state.board.hasAlbumMatch();
         boolean collaboratorsRevealed = revealAll || state.board.hasFeatureMatch();
         boolean trackRevealed = revealAll || state.win;
+        boolean trackNumberKnown = revealAll || state.board.hasTrackNumberMatch();
+        boolean explicitKnown = revealAll || state.board.hasExplicitMatch();
 
         ObjectNode node = mapper.createObjectNode();
         node.put("albumRevealed", albumRevealed);
         node.put("collaboratorsRevealed", collaboratorsRevealed);
         node.put("trackRevealed", trackRevealed);
+        node.put("trackNumberKnown", trackNumberKnown);
+        node.put("explicitKnown", explicitKnown);
         node.put("albumName", albumRevealed ? state.randomAlbum.name : "");
         node.put("albumImage", albumRevealed ? Optional.ofNullable(state.randomAlbumImageUrl).orElse("") : "");
         String releaseDate = Optional.ofNullable(state.randomAlbum.releaseDate).orElse("");
@@ -561,13 +565,19 @@ public class Musicadle {
 
         if (trackRevealed) {
             node.put("trackName", state.randomTrack.name);
-            node.put("duration", formatDuration(state.randomTrack.duration));
-            node.put("trackNumber", state.randomTrack.trackNumber);
-            node.put("explicit", state.randomTrack.explicit);
         } else {
             node.put("trackName", "");
-            node.put("duration", "");
+        }
+
+        if (trackNumberKnown) {
+            node.put("trackNumber", state.randomTrack.trackNumber);
+        } else {
             node.put("trackNumber", 0);
+        }
+
+        if (explicitKnown) {
+            node.put("explicit", state.randomTrack.explicit);
+        } else {
             node.put("explicit", false);
         }
 
@@ -661,6 +671,18 @@ public class Musicadle {
 
         boolean hasFeatureMatch() {
             return Arrays.stream(ft)
+                    .filter(Objects::nonNull)
+                    .anyMatch(value -> value.contains("✅"));
+        }
+
+        boolean hasTrackNumberMatch() {
+            return Arrays.stream(trackNo)
+                    .filter(Objects::nonNull)
+                    .anyMatch(value -> value.contains("✅"));
+        }
+
+        boolean hasExplicitMatch() {
+            return Arrays.stream(explicit)
                     .filter(Objects::nonNull)
                     .anyMatch(value -> value.contains("✅"));
         }

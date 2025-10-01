@@ -27,7 +27,7 @@
         }
 
         .container {
-            width: min(1080px, 100%);
+            width: min(1280px, 100%);
             background: var(--card);
             border-radius: 18px;
             padding: 2.5rem 2rem;
@@ -299,44 +299,6 @@
             color: var(--text);
         }
 
-        .card-controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .icon-btn {
-            width: 2.4rem;
-            height: 2.4rem;
-            border-radius: 50%;
-            border: 1px solid rgba(148, 163, 184, 0.25);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: transparent;
-            color: inherit;
-            cursor: pointer;
-        }
-
-        .icon-btn svg {
-            width: 1.1rem;
-            height: 1.1rem;
-        }
-
-        .icon-btn.play {
-            width: 3.2rem;
-            height: 3.2rem;
-            background: linear-gradient(135deg, #22d3ee, #0ea5e9);
-            color: #0f172a;
-            border: none;
-        }
-
-        .icon-btn:disabled {
-            opacity: 0.35;
-            cursor: default;
-        }
-
         @media (max-width: 1024px) {
             .game-layout {
                 grid-template-columns: 1fr;
@@ -430,10 +392,6 @@
                         <strong id="card-release">—</strong>
                     </div>
                     <div class="detail-row">
-                        <span>Duración</span>
-                        <strong id="card-duration">--:--</strong>
-                    </div>
-                    <div class="detail-row">
                         <span>Pista</span>
                         <strong id="card-track-number"># ?</strong>
                     </div>
@@ -441,38 +399,6 @@
                         <span>Explicita</span>
                         <strong id="card-explicit">—</strong>
                     </div>
-                </div>
-                <div class="card-controls">
-                    <button class="icon-btn" type="button" aria-label="Retroceder">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polygon points="19 20 9 12 19 4 19 20"></polygon>
-                            <line x1="5" y1="19" x2="5" y2="5"></line>
-                        </svg>
-                    </button>
-                    <button class="icon-btn play" type="button" aria-label="Reproducir">
-                        <svg viewBox="0 0 24 24" fill="currentColor">
-                            <polygon points="8,5 19,12 8,19"></polygon>
-                        </svg>
-                    </button>
-                    <button class="icon-btn" type="button" aria-label="Avanzar">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polygon points="5 4 15 12 5 20 5 4"></polygon>
-                            <line x1="19" y1="5" x2="19" y2="19"></line>
-                        </svg>
-                    </button>
-                    <button class="icon-btn" type="button" aria-label="Aleatorio">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="4 4 9 4 21 16"></polyline>
-                            <polyline points="21 8 21 16 13 16"></polyline>
-                            <line x1="15" y1="4" x2="21" y2="10"></line>
-                            <line x1="4" y1="20" x2="9" y2="15"></line>
-                        </svg>
-                    </button>
-                    <button class="icon-btn" type="button" aria-label="Favorito">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"></path>
-                        </svg>
-                    </button>
                 </div>
             </aside>
         </div>
@@ -498,7 +424,6 @@
     const cardArtists = document.getElementById('card-artists');
     const cardAlbum = document.getElementById('card-album-name');
     const cardRelease = document.getElementById('card-release');
-    const cardDuration = document.getElementById('card-duration');
     const cardTrackNumber = document.getElementById('card-track-number');
     const cardExplicit = document.getElementById('card-explicit');
 
@@ -548,7 +473,6 @@
             cardArtists.textContent = 'Artista ...';
             cardAlbum.textContent = 'Desconocido';
             cardRelease.textContent = '—';
-            cardDuration.textContent = '--:--';
             cardTrackNumber.textContent = '# ?';
             cardExplicit.textContent = '—';
             return;
@@ -568,14 +492,11 @@
         cardArtists.textContent = card.artists || 'Artista ...';
         cardAlbum.textContent = card.albumRevealed && card.albumName ? card.albumName : 'Desconocido';
         cardRelease.textContent = card.albumRevealed && card.releaseYear ? card.releaseYear : '—';
-        cardDuration.textContent = card.trackRevealed && card.duration ? card.duration : '--:--';
-        cardTrackNumber.textContent = card.trackRevealed && card.trackNumber ? `# ${card.trackNumber}` : '# ?';
+        const trackNumberKnown = !!card.trackNumberKnown;
+        const explicitKnown = !!card.explicitKnown;
 
-        if (card.trackRevealed) {
-            cardExplicit.textContent = card.explicit ? 'Sí' : 'No';
-        } else {
-            cardExplicit.textContent = '—';
-        }
+        cardTrackNumber.textContent = trackNumberKnown && card.trackNumber ? `# ${card.trackNumber}` : '# ?';
+        cardExplicit.textContent = explicitKnown ? (card.explicit ? 'Sí' : 'No') : '—';
     }
 
     function renderSuggestions(query) {
