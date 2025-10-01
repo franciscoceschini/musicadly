@@ -1,3 +1,4 @@
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -555,6 +556,7 @@ public class Musicadle {
         List<Track> tracks;
     }
 
+    @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
     static class Board {
         String[] name = new String[8];
         String[] album = new String[8];
