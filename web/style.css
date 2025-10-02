@@ -197,7 +197,8 @@ tbody tr:last-child td {
 }
 
 .suggestions button:hover,
-.suggestions button:focus {
+.suggestions button:focus,
+.suggestions button.active {
     background: rgba(34, 211, 238, 0.15);
     border: none;
     color: var(--accent);
