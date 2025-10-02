@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Musicadle</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+
+</head>
+<body>
+<div class="container">
+    <h1>🎵 Musicadle</h1>
+    <p class="subtitle">Adiviná la canción del artista que quieras.</p>
+
+    <div id="status" class="status hidden"></div>
+
+    <form id="artist-form" class="artist-controls">
+        <label for="artist">Elegí un artista</label>
+        <input id="artist" name="artist" type="text" placeholder="Introduce un artista" required>
+        <div class="form-actions">
+            <button id="start-btn" type="submit">Comenzar partida</button>
+            <button id="restart-btn" type="button" class="secondary" disabled>Reiniciar</button>
+        </div>
+    </form>
+
+    <div id="game-area" class="hidden">
+        <form id="guess-form">
+            <label for="guess">¿Cuál es la canción?</label>
+            <div class="guess-field">
+                <input id="guess" name="guess" type="text" placeholder="Escribe tu intento" autocomplete="off" required>
+                <div id="track-suggestions" class="suggestions hidden"></div>
+            </div>
+            <button type="submit">Enviar intento</button>
+        </form>
+
+        <div id="feedback" class="status hidden"></div>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Álbum</th>
+                <th>#</th>
+                <th>Duración</th>
+                <th>Colab.</th>
+                <th>Explicita</th>
+            </tr>
+            </thead>
+            <tbody id="board-body"></tbody>
+        </table>
+
+        <h3>Canciones disponibles</h3>
+        <div id="track-list" class="track-list"></div>
+    </div>
+</div>
+<script src="./script.js"></script>
+</body>
+</html>

@@ -1,0 +1,2 @@
+## Musicadle
+El juego consiste en adivinar una canción aleatoria de un artista dadas las pistas obtenidas mediante intentos anteriores. Una vez que se realiza un intento, se comparan las características (álbum, número de canción dentro de ese álbum, duración, si tiene colaboración y si es explícita) de la canción probada con las de la canción a adivinar, una vez comparadas las características, el usuario obtendrá pistas para llegar a la suposición correcta en un máximo de ocho intentos.

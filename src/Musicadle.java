@@ -1,13 +1,25 @@
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.sun.net.httpserver.Headers;
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpServer;
+
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.*;
-import java.util.Base64;
 
 public class Musicadle {
     private static final String CLIENT_ID = "";
@@ -15,152 +27,43 @@ public class Musicadle {
     private static String accessToken;
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
+    private static final Map<String, GameState> games = new HashMap<>();
 
-        System.out.print("Elige el artista: ");
-        String artistName = scanner.nextLine();
+    static void main() {
+        try {
+            startServer();
+        } catch (Exception e) {
+            System.err.println("Error starting server: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
 
-        System.out.println("🎵 Iniciando Musicadle... 🎵");
+    private static void startServer() throws Exception {
+        if (CLIENT_ID.isEmpty() || CLIENT_SECRET.isEmpty()) {
+            System.out.println("⚠️  SPOTIFY_CLIENT_ID o SPOTIFY_CLIENT_SECRET no están definidos. El backend no podrá autenticar.");
+        }
 
         try {
             authenticate();
-
-            JsonNode artistData = searchArtist(artistName);
-            String artistUri = artistData.get("uri").asText();
-            String artistId = artistData.get("id").asText();
-            String finalArtistName = artistData.get("name").asText();
-
-            List<Album> albums = getArtistAlbums(artistId);
-
-            if (albums.isEmpty()) {
-                System.out.println("No se encontraron álbumes para este artista.");
-                return;
-            }
-
-            Random random = new Random();
-            Album randomAlbum = albums.get(random.nextInt(albums.size()));
-            Track randomTrack = randomAlbum.tracks.get(random.nextInt(randomAlbum.tracks.size()));
-
-            System.out.println("🎵 ¡Bienvenido a Musicadle! 🎵");
-            System.out.println("Adivina la canción de " + finalArtistName);
-
-            Board board = new Board();
-            board.print();
-
-            Set<String> possibleTracks = new HashSet<>();
-            for (Album album : albums) {
-                for (Track track : album.tracks) {
-                    possibleTracks.add(track.name.toLowerCase());
-                }
-            }
-
-            Set<String> guesses = new HashSet<>();
-            boolean win = false;
-            int lives = 8;
-            int attempts = 0;
-
-            while (!win && lives > 0) {
-                System.out.print("Guess the song: ");
-                String guess = scanner.nextLine().toLowerCase();
-
-                while (!possibleTracks.contains(guess) || guesses.contains(guess)) {
-                    if (!possibleTracks.contains(guess)) {
-                        System.out.print("NOT A SONG. Guess the song: ");
-                    } else {
-                        System.out.print("Already guessed. Guess another the song: ");
-                    }
-                    guess = scanner.nextLine().toLowerCase();
-                }
-
-                guesses.add(guess);
-
-                Track guessedTrack = null;
-                Album guessedAlbum = null;
-
-                for (Album album : albums) {
-                    for (Track track : album.tracks) {
-                        if (track.name.toLowerCase().equals(guess)) {
-                            guessedTrack = track;
-                            guessedAlbum = album;
-                            break;
-                        }
-                    }
-                    if (guessedTrack != null) break;
-                }
-
-                board.name[attempts] = guessedTrack.name;
-
-                int albumComparison = guessedAlbum.releaseDate.compareTo(randomAlbum.releaseDate);
-                if (albumComparison < 0) {
-                    board.album[attempts] = guessedAlbum.name + "↑";
-                } else if (albumComparison > 0) {
-                    board.album[attempts] = guessedAlbum.name + "↓";
-                } else {
-                    board.album[attempts] = guessedAlbum.name + " ✅";
-                }
-
-                if (guessedTrack.trackNumber < randomTrack.trackNumber) {
-                    board.trackNo[attempts] = guessedTrack.trackNumber + "↑";
-                } else if (guessedTrack.trackNumber > randomTrack.trackNumber) {
-                    board.trackNo[attempts] = guessedTrack.trackNumber + "↓";
-                } else {
-                    board.trackNo[attempts] = guessedTrack.trackNumber + " ✅";
-                }
-
-                if (guessedTrack.duration < randomTrack.duration) {
-                    board.length[attempts] = formatDuration(guessedTrack.duration) + "↑";
-                } else if (guessedTrack.duration > randomTrack.duration) {
-                    board.length[attempts] = formatDuration(guessedTrack.duration) + "↓";
-                } else {
-                    board.length[attempts] = formatDuration(guessedTrack.duration) + " ✅";
-                }
-
-                if (guessedTrack.features && randomTrack.features) {
-                    board.ft[attempts] = "Features ✅";
-                } else if (!guessedTrack.features && !randomTrack.features) {
-                    board.ft[attempts] = "No features ✅";
-                } else if (guessedTrack.features) {
-                    board.ft[attempts] = "Features";
-                } else {
-                    board.ft[attempts] = "No features";
-                }
-
-                if (guessedTrack.explicit && randomTrack.explicit) {
-                    board.explicit[attempts] = "Explicit ✅";
-                } else if (!guessedTrack.explicit && !randomTrack.explicit) {
-                    board.explicit[attempts] = "Not explicit ✅";
-                } else if (guessedTrack.explicit) {
-                    board.explicit[attempts] = "Explicit";
-                } else {
-                    board.explicit[attempts] = "Not explicit";
-                }
-
-                if (guessedTrack.name.equals(randomTrack.name)) {
-                    win = true;
-                }
-
-                board.print();
-
-                lives--;
-                attempts++;
-            }
-
-            if (win) {
-                System.out.println("✅ Ganaste en " + attempts + " intentos.");
-            } else {
-                System.out.println("❌ Perdiste. La cancion era: " + randomTrack.name + ".");
-            }
-
         } catch (Exception e) {
-            System.err.println("Error: " + e.getMessage());
-            e.printStackTrace();
+            System.out.println("⚠️  No se pudo autenticar con Spotify al iniciar: " + e.getMessage());
         }
 
-        scanner.close();
+        HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
+        server.createContext("/", new WebStaticHandler("web"));
+        server.createContext("/api/game", new GameHandler());
+        server.createContext("/api/game/", new GuessHandler());
+
+        server.setExecutor(null);
+        System.out.println("🚀 Servidor iniciado en http://localhost:8080");
+        server.start();
     }
 
     private static void authenticate() throws Exception {
+        if (CLIENT_ID.isEmpty() || CLIENT_SECRET.isEmpty()) {
+            throw new IllegalStateException("Las credenciales de Spotify no están configuradas. Define SPOTIFY_CLIENT_ID y SPOTIFY_CLIENT_SECRET.");
+        }
+
         String auth = CLIENT_ID + ":" + CLIENT_SECRET;
         String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
 
@@ -184,6 +87,12 @@ public class Musicadle {
 
         JsonNode json = mapper.readTree(response.toString());
         accessToken = json.get("access_token").asText();
+    }
+
+    private static void ensureAuthenticated() throws Exception {
+        if (accessToken == null || accessToken.isEmpty()) {
+            authenticate();
+        }
     }
 
     private static JsonNode makeSpotifyRequest(String endpoint) throws Exception {
@@ -233,16 +142,411 @@ public class Musicadle {
                 album.tracks.add(track);
             }
 
-            albums.add(album);
+            if (!album.tracks.isEmpty()) {
+                albums.add(album);
+            }
         }
 
         return albums;
+    }
+
+    private static GameState createGame(String artistName) throws Exception {
+        JsonNode artistData = searchArtist(artistName);
+        String artistId = artistData.get("id").asText();
+        String finalArtistName = artistData.get("name").asText();
+
+        List<Album> albums = getArtistAlbums(artistId);
+        if (albums.isEmpty()) {
+            return null;
+        }
+
+        Map<String, List<TrackSelection>> groupedTracks = new HashMap<>();
+        for (Album album : albums) {
+            for (Track track : album.tracks) {
+                TrackSelection selection = new TrackSelection(track, album);
+                String key = track.name.toLowerCase(Locale.ROOT);
+                groupedTracks.computeIfAbsent(key, k -> new ArrayList<>()).add(selection);
+            }
+        }
+
+        Map<String, TrackSelection> canonicalSelections = new HashMap<>();
+        for (Map.Entry<String, List<TrackSelection>> entry : groupedTracks.entrySet()) {
+            TrackSelection preferred = choosePreferredSelection(entry.getValue());
+            if (preferred != null) {
+                canonicalSelections.put(entry.getKey(), preferred);
+            }
+        }
+
+        if (canonicalSelections.isEmpty()) {
+            return null;
+        }
+
+        Random random = new Random();
+        List<TrackSelection> canonicalList = new ArrayList<>(canonicalSelections.values());
+        TrackSelection chosen = canonicalList.get(random.nextInt(canonicalList.size()));
+
+        GameState state = new GameState();
+        state.artistId = artistId;
+        state.artistName = finalArtistName;
+        state.albums = albums;
+        state.randomAlbum = chosen.album;
+        state.randomTrack = chosen.track;
+        state.board = new Board();
+
+        state.trackLookup = canonicalSelections;
+        state.possibleTracks = new ArrayList<>(canonicalSelections.keySet());
+        Collections.sort(state.possibleTracks);
+
+        return state;
+    }
+
+    private static TrackSelection choosePreferredSelection(List<TrackSelection> selections) {
+        return selections.stream().min(Musicadle::compareTrackSelection).orElse(null);
+    }
+
+    private static int compareTrackSelection(TrackSelection a, TrackSelection b) {
+        boolean aPreferredName = isPreferredAlbumName(a.album.name);
+        boolean bPreferredName = isPreferredAlbumName(b.album.name);
+        if (aPreferredName != bPreferredName) {
+            return Boolean.compare(!aPreferredName, !bPreferredName);
+        }
+
+        LocalDate aDate = parseReleaseDate(a.album.releaseDate);
+        LocalDate bDate = parseReleaseDate(b.album.releaseDate);
+        int dateComparison = aDate.compareTo(bDate);
+        if (dateComparison != 0) {
+            return dateComparison;
+        }
+
+        int albumNameComparison = a.album.name.compareToIgnoreCase(b.album.name);
+        if (albumNameComparison != 0) {
+            return albumNameComparison;
+        }
+
+        return Integer.compare(a.track.trackNumber, b.track.trackNumber);
+    }
+
+    private static boolean isPreferredAlbumName(String albumName) {
+        if (albumName == null) {
+            return true;
+        }
+        String lower = albumName.toLowerCase(Locale.ROOT);
+        return !(lower.contains("deluxe") || lower.contains("bonus") || lower.contains("version"));
+    }
+
+    private static LocalDate parseReleaseDate(String releaseDate) {
+        if (releaseDate == null || releaseDate.isEmpty()) {
+            return LocalDate.MAX;
+        }
+
+        try {
+            if (releaseDate.length() == 4) {
+                return LocalDate.of(Integer.parseInt(releaseDate), 1, 1);
+            }
+            if (releaseDate.length() == 7) {
+                return LocalDate.parse(releaseDate + "-01");
+            }
+            return LocalDate.parse(releaseDate);
+        } catch (NumberFormatException | DateTimeParseException e) {
+            return LocalDate.MAX;
+        }
+    }
+
+    private static GuessResult processGuess(GameState state, String guessInput) {
+        if (state.over()) {
+            return new GuessResult(false, "El juego ya ha terminado.", "");
+        }
+
+        if (guessInput == null || guessInput.trim().isEmpty()) {
+            return new GuessResult(false, "Ingresa un nombre de canción válido.", "");
+        }
+
+        String guess = guessInput.trim().toLowerCase();
+
+        if (!state.trackLookup.containsKey(guess)) {
+            return new GuessResult(false, "No es una canción válida de este artista. Intenta otra vez.", "");
+        }
+
+        if (state.guesses.contains(guess)) {
+            return new GuessResult(false, "Ya intentaste esa canción. Prueba con otra.", "");
+        }
+
+        state.guesses.add(guess);
+        state.lives--;
+        state.attempts++;
+
+        TrackSelection selection = state.trackLookup.get(guess);
+        Track guessedTrack = selection.track;
+        Album guessedAlbum = selection.album;
+
+        int index = state.attempts - 1;
+        state.board.name[index] = guessedTrack.name;
+
+        int albumComparison = guessedAlbum.releaseDate.compareTo(state.randomAlbum.releaseDate);
+        if (albumComparison < 0) {
+            state.board.album[index] = guessedAlbum.name + " ↑";
+        } else if (albumComparison > 0) {
+            state.board.album[index] = guessedAlbum.name + " ↓";
+        } else {
+            state.board.album[index] = guessedAlbum.name + " ✅";
+        }
+
+        if (guessedTrack.trackNumber < state.randomTrack.trackNumber) {
+            state.board.trackNo[index] = guessedTrack.trackNumber + " ↑";
+        } else if (guessedTrack.trackNumber > state.randomTrack.trackNumber) {
+            state.board.trackNo[index] = guessedTrack.trackNumber + " ↓";
+        } else {
+            state.board.trackNo[index] = guessedTrack.trackNumber + " ✅";
+        }
+
+        if (guessedTrack.duration < state.randomTrack.duration) {
+            state.board.length[index] = formatDuration(guessedTrack.duration) + " ↑";
+        } else if (guessedTrack.duration > state.randomTrack.duration) {
+            state.board.length[index] = formatDuration(guessedTrack.duration) + " ↓";
+        } else {
+            state.board.length[index] = formatDuration(guessedTrack.duration) + " ✅";
+        }
+
+        if (guessedTrack.features && state.randomTrack.features) {
+            state.board.ft[index] = "Con colaboraciones ✅";
+        } else if (!guessedTrack.features && !state.randomTrack.features) {
+            state.board.ft[index] = "Sin colaboraciones ✅";
+        } else if (guessedTrack.features) {
+            state.board.ft[index] = "Con colaboraciones";
+        } else {
+            state.board.ft[index] = "Sin colaboraciones";
+        }
+
+        if (guessedTrack.explicit && state.randomTrack.explicit) {
+            state.board.explicit[index] = "Explícita ✅";
+        } else if (!guessedTrack.explicit && !state.randomTrack.explicit) {
+            state.board.explicit[index] = "No explícita ✅";
+        } else if (guessedTrack.explicit) {
+            state.board.explicit[index] = "Explícita";
+        } else {
+            state.board.explicit[index] = "No explícita";
+        }
+
+        if (guessedTrack.name.equals(state.randomTrack.name)) {
+            state.win = true;
+        }
+
+        if (state.win) {
+            state.lives = Math.max(state.lives, 0);
+            return new GuessResult(true, "¡Correcto! Adivinaste la canción.", summary(state));
+        }
+
+        if (state.lives == 0) {
+            return new GuessResult(true, "Sin intentos restantes.", summary(state));
+        }
+
+        return new GuessResult(true, "Sigue intentando. Te quedan " + state.lives + " intentos.", summary(state));
+    }
+
+    private static String summary(GameState state) {
+        if (state.win) {
+            return "Ganaste en " + state.attempts + " intentos.";
+        }
+        if (state.lives == 0) {
+            return "Perdiste. La canción era: " + state.randomTrack.name + ".";
+        }
+        return "Intentos usados: " + state.attempts + ".";
     }
 
     private static String formatDuration(double seconds) {
         int minutes = (int) (seconds / 60);
         int secs = (int) (seconds % 60);
         return String.format("%d:%02d", minutes, secs);
+    }
+
+    private static void sendJson(HttpExchange exchange, int status, Object body) throws IOException {
+        byte[] response = mapper.writeValueAsBytes(body);
+        Headers headers = exchange.getResponseHeaders();
+        headers.set("Content-Type", "application/json; charset=utf-8");
+        headers.set("Access-Control-Allow-Origin", "*");
+        exchange.sendResponseHeaders(status, response.length);
+        try (OutputStream os = exchange.getResponseBody()) {
+            os.write(response);
+        }
+    }
+
+    private static class WebStaticHandler implements HttpHandler {
+        private final String baseDir;
+
+        WebStaticHandler(String baseDir) {
+            this.baseDir = baseDir;
+        }
+
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            if (!"GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(405, -1);
+                return;
+            }
+            String path = exchange.getRequestURI().getPath();
+            if (path.equals("/")) path = "/index.html";
+            String filePath = baseDir + path;
+            java.nio.file.Path fsPath = java.nio.file.Paths.get(filePath);
+
+            if (!java.nio.file.Files.exists(fsPath)) {
+                exchange.sendResponseHeaders(404, -1);
+                return;
+            }
+
+            String contentType = "text/plain";
+            if (path.endsWith(".html")) contentType = "text/html; charset=utf-8";
+            else if (path.endsWith(".css")) contentType = "text/css; charset=utf-8";
+            else if (path.endsWith(".js")) contentType = "application/javascript; charset=utf-8";
+
+            byte[] content = java.nio.file.Files.readAllBytes(fsPath);
+            Headers headers = exchange.getResponseHeaders();
+            headers.set("Content-Type", contentType);
+            exchange.sendResponseHeaders(200, content.length);
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(content);
+            }
+        }
+    }
+
+    private static class GameHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
+                Headers headers = exchange.getResponseHeaders();
+                headers.set("Access-Control-Allow-Origin", "*");
+                headers.set("Access-Control-Allow-Headers", "Content-Type");
+                headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+                exchange.sendResponseHeaders(204, -1);
+                return;
+            }
+
+            if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(405, -1);
+                return;
+            }
+
+            try {
+                JsonNode body = mapper.readTree(exchange.getRequestBody());
+                String artist = body.hasNonNull("artist") ? body.get("artist").asText() : null;
+
+                if (artist == null || artist.trim().isEmpty()) {
+                    sendJson(exchange, 400, Map.of("error", "El campo 'artist' es requerido."));
+                    return;
+                }
+
+                ensureAuthenticated();
+
+                GameState state = createGame(artist);
+                if (state == null || state.albums.isEmpty()) {
+                    sendJson(exchange, 404, Map.of("error", "No se encontraron álbumes para este artista."));
+                    return;
+                }
+
+                String gameId = UUID.randomUUID().toString();
+                games.put(gameId, state);
+
+                ObjectNode response = mapper.createObjectNode();
+                response.put("gameId", gameId);
+                response.put("artistName", state.artistName);
+                response.put("message", "Juego iniciado. ¡Comienza a adivinar!");
+                response.set("board", mapper.valueToTree(state.board));
+                response.put("lives", state.lives);
+                response.put("attempts", state.attempts);
+                response.put("win", state.win);
+                response.put("over", state.over());
+                response.set("possibleTracks", mapper.valueToTree(state.possibleTracks));
+
+                sendJson(exchange, 200, response);
+            } catch (Exception e) {
+                e.printStackTrace();
+                sendJson(exchange, 500, Map.of("error", "Error al iniciar el juego: " + e.getMessage()));
+            }
+        }
+    }
+
+    private static class GuessHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
+                Headers headers = exchange.getResponseHeaders();
+                headers.set("Access-Control-Allow-Origin", "*");
+                headers.set("Access-Control-Allow-Headers", "Content-Type");
+                headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+                exchange.sendResponseHeaders(204, -1);
+                return;
+            }
+
+            if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(405, -1);
+                return;
+            }
+
+            URI requestURI = exchange.getRequestURI();
+            String path = requestURI.getPath();
+            String[] parts = path.split("/");
+
+            if (parts.length < 4) {
+                sendJson(exchange, 400, Map.of("error", "Formato de URL inválido."));
+                return;
+            }
+
+            String gameId = parts[3];
+            GameState state = games.get(gameId);
+
+            if (state == null) {
+                sendJson(exchange, 404, Map.of("error", "Juego no encontrado."));
+                return;
+            }
+
+            try {
+                JsonNode body = mapper.readTree(exchange.getRequestBody());
+                String guess = body.hasNonNull("guess") ? body.get("guess").asText() : null;
+
+                GuessResult result = processGuess(state, guess);
+
+                if (!result.accepted) {
+                    sendJson(exchange, 400, Map.of("error", result.message));
+                    return;
+                }
+
+                ObjectNode response = mapper.createObjectNode();
+                response.put("message", result.message);
+                response.put("feedback", result.feedback);
+                response.put("lives", state.lives);
+                response.put("attempts", state.attempts);
+                response.put("win", state.win);
+                response.put("over", state.over());
+                response.put("answer", state.over() ? state.randomTrack.name : "");
+                response.set("board", mapper.valueToTree(state.board));
+
+                sendJson(exchange, 200, response);
+            } catch (Exception e) {
+                e.printStackTrace();
+                sendJson(exchange, 500, Map.of("error", "Error al procesar el intento: " + e.getMessage()));
+            }
+        }
+    }
+
+    static class TrackSelection {
+        final Track track;
+        final Album album;
+
+        TrackSelection(Track track, Album album) {
+            this.track = track;
+            this.album = album;
+        }
+    }
+
+    static class GuessResult {
+        final boolean accepted;
+        final String message;
+        final String feedback;
+
+        GuessResult(boolean accepted, String message, String feedback) {
+            this.accepted = accepted;
+            this.message = message;
+            this.feedback = feedback;
+        }
     }
 
     static class Track {
@@ -259,6 +563,7 @@ public class Musicadle {
         List<Track> tracks;
     }
 
+    @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
     static class Board {
         String[] name = new String[8];
         String[] album = new String[8];
@@ -275,28 +580,24 @@ public class Musicadle {
             Arrays.fill(ft, "_");
             Arrays.fill(explicit, "_");
         }
+    }
 
-        void print() {
-            System.out.println("\n" + "=".repeat(120));
-            System.out.printf("| %-30s | %-25s | %-10s | %-10s | %-15s | %-15s |%n",
-                    "name", "album", "track no.", "length", "Ft.", "explicit");
-            System.out.println("=".repeat(120));
+    static class GameState {
+        String artistId;
+        String artistName;
+        List<Album> albums;
+        Album randomAlbum;
+        Track randomTrack;
+        Board board;
+        Map<String, TrackSelection> trackLookup;
+        List<String> possibleTracks;
+        Set<String> guesses = new HashSet<>();
+        int lives = 8;
+        int attempts = 0;
+        boolean win = false;
 
-            for (int i = 0; i < 8; i++) {
-                System.out.printf("| %-30s | %-25s | %-10s | %-10s | %-15s | %-15s |%n",
-                        truncate(name[i], 30),
-                        truncate(album[i], 25),
-                        trackNo[i],
-                        length[i],
-                        ft[i],
-                        explicit[i]);
-            }
-            System.out.println("=".repeat(120) + "\n");
-        }
-
-        private String truncate(String str, int maxLen) {
-            if (str.length() <= maxLen) return str;
-            return str.substring(0, maxLen - 3) + "...";
+        boolean over() {
+            return win || lives <= 0;
         }
     }
 }
