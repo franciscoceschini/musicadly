@@ -17,24 +17,17 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.*;
 
 public class Musicadle {
-    private static final String CLIENT_ID = Optional.ofNullable(System.getenv("SPOTIFY_CLIENT_ID")).orElse("");
-    private static final String CLIENT_SECRET = Optional.ofNullable(System.getenv("SPOTIFY_CLIENT_SECRET")).orElse("");
+    private static final String CLIENT_ID = "CLIENT_ID";
+    private static final String CLIENT_SECRET = "CLIENT_SECRET";
     private static String accessToken;
     private static final ObjectMapper mapper = new ObjectMapper();
 
     private static final Map<String, GameState> games = new HashMap<>();
 
-    public static void main(String[] args) {
-        if (args.length > 0 && "--cli".equals(args[0])) {
-            runCli();
-            return;
-        }
-
+     static void main() {
         try {
             startServer();
         } catch (Exception e) {
@@ -62,59 +55,6 @@ public class Musicadle {
         server.setExecutor(null);
         System.out.println("🚀 Servidor iniciado en http://localhost:8080");
         server.start();
-    }
-
-    private static void runCli() {
-        Scanner scanner = new Scanner(System.in);
-
-        System.out.print("Elegí un artista: ");
-        String artistName = scanner.nextLine();
-
-        System.out.println("🎵 Iniciando Musicadle... 🎵");
-
-        try {
-            ensureAuthenticated();
-
-            GameState state = createGame(artistName);
-
-            if (state == null || state.albums.isEmpty()) {
-                System.out.println("No se encontraron álbumes para este artista.");
-                return;
-            }
-
-            System.out.println("🎵 ¡Bienvenido a Musicadle! 🎵");
-            System.out.println("Adivina la canción de " + state.artistName);
-
-            state.board.print();
-
-            Scanner guessScanner = new Scanner(System.in);
-            while (!state.over()) {
-                System.out.print("Guess the song: ");
-                String guess = guessScanner.nextLine();
-                GuessResult result = processGuess(state, guess);
-
-                while (!result.accepted) {
-                    System.out.print(result.message + " ");
-                    guess = guessScanner.nextLine();
-                    result = processGuess(state, guess);
-                }
-
-                System.out.println(result.feedback);
-                state.board.print();
-            }
-
-            if (state.win) {
-                System.out.println("✅ Ganaste en " + state.attempts + " intentos.");
-            } else {
-                System.out.println("❌ Perdiste. La canción era: " + state.randomTrack.name + ".");
-            }
-
-        } catch (Exception e) {
-            System.err.println("Error: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        scanner.close();
     }
 
     private static void authenticate() throws Exception {
@@ -363,16 +303,6 @@ public class Musicadle {
         }
     }
 
-    private static void sendText(HttpExchange exchange, int status, String body) throws IOException {
-        byte[] response = body.getBytes(StandardCharsets.UTF_8);
-        Headers headers = exchange.getResponseHeaders();
-        headers.set("Content-Type", "text/plain; charset=utf-8");
-        exchange.sendResponseHeaders(status, response.length);
-        try (OutputStream os = exchange.getResponseBody()) {
-            os.write(response);
-        }
-    }
-
     private static class StaticFileHandler implements HttpHandler {
         private final String filePath;
 
@@ -572,29 +502,6 @@ public class Musicadle {
             Arrays.fill(length, "_");
             Arrays.fill(ft, "_");
             Arrays.fill(explicit, "_");
-        }
-
-        void print() {
-            System.out.println("\n" + "=".repeat(120));
-            System.out.printf("| %-30s | %-25s | %-10s | %-10s | %-15s | %-15s |%n",
-                    "name", "album", "track no.", "length", "Ft.", "explicit");
-            System.out.println("=".repeat(120));
-
-            for (int i = 0; i < 8; i++) {
-                System.out.printf("| %-30s | %-25s | %-10s | %-10s | %-15s | %-15s |%n",
-                        truncate(name[i], 30),
-                        truncate(album[i], 25),
-                        trackNo[i],
-                        length[i],
-                        ft[i],
-                        explicit[i]);
-            }
-            System.out.println("=".repeat(120) + "\n");
-        }
-
-        private String truncate(String str, int maxLen) {
-            if (str.length() <= maxLen) return str;
-            return str.substring(0, maxLen - 3) + "...";
         }
     }
 
