@@ -14,6 +14,22 @@ const suggestionsBox = document.getElementById('track-suggestions');
 
 let gameId = null;
 let availableTracks = [];
+let currentSuggestions = [];
+let activeSuggestionIndex = -1;
+
+function setActiveSuggestion(index) {
+    const buttons = suggestionsBox.querySelectorAll('button');
+    buttons.forEach(button => button.classList.remove('active'));
+
+    if (index >= 0 && index < buttons.length) {
+        activeSuggestionIndex = index;
+        const activeButton = buttons[index];
+        activeButton.classList.add('active');
+        activeButton.scrollIntoView({block: 'nearest'});
+    } else {
+        activeSuggestionIndex = -1;
+    }
+}
 
 function showMessage(element, message, type = 'info') {
     if (!message) {
@@ -55,10 +71,14 @@ function renderSuggestions(query) {
 
     if (!term) {
         suggestionsBox.classList.add('hidden');
+        currentSuggestions = [];
+        activeSuggestionIndex = -1;
         return;
     }
 
     const matches = availableTracks.filter(track => track.toLowerCase().includes(term)).slice(0, 8);
+    currentSuggestions = matches;
+    activeSuggestionIndex = -1;
 
     if (!matches.length) {
         const empty = document.createElement('div');
@@ -77,6 +97,8 @@ function renderSuggestions(query) {
             event.preventDefault();
             guessInput.value = track;
             suggestionsBox.classList.add('hidden');
+            currentSuggestions = [];
+            activeSuggestionIndex = -1;
         });
         suggestionsBox.appendChild(button);
     });
@@ -211,4 +233,36 @@ guessInput.addEventListener('focus', (event) => {
 
 guessInput.addEventListener('blur', () => {
     setTimeout(() => suggestionsBox.classList.add('hidden'), 120);
+});
+
+guessInput.addEventListener('keydown', (event) => {
+    if (suggestionsBox.classList.contains('hidden') || !currentSuggestions.length) {
+        return;
+    }
+
+    if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        const nextIndex = activeSuggestionIndex < currentSuggestions.length - 1 ? activeSuggestionIndex + 1 : 0;
+        setActiveSuggestion(nextIndex);
+    } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        if (activeSuggestionIndex === -1) {
+            setActiveSuggestion(currentSuggestions.length - 1);
+        } else {
+            const prevIndex = activeSuggestionIndex > 0 ? activeSuggestionIndex - 1 : currentSuggestions.length - 1;
+            setActiveSuggestion(prevIndex);
+        }
+    } else if (event.key === 'Enter') {
+        if (activeSuggestionIndex >= 0) {
+            event.preventDefault();
+            guessInput.value = currentSuggestions[activeSuggestionIndex];
+            suggestionsBox.classList.add('hidden');
+            currentSuggestions = [];
+            activeSuggestionIndex = -1;
+        }
+    } else if (event.key === 'Escape') {
+        suggestionsBox.classList.add('hidden');
+        currentSuggestions = [];
+        activeSuggestionIndex = -1;
+    }
 });

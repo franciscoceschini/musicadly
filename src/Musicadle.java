@@ -17,6 +17,8 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 
 public class Musicadle {
@@ -27,7 +29,7 @@ public class Musicadle {
 
     private static final Map<String, GameState> games = new HashMap<>();
 
-     static void main() {
+    static void main() {
         try {
             startServer();
         } catch (Exception e) {
@@ -158,31 +160,96 @@ public class Musicadle {
             return null;
         }
 
+        Map<String, List<TrackSelection>> groupedTracks = new HashMap<>();
+        for (Album album : albums) {
+            for (Track track : album.tracks) {
+                TrackSelection selection = new TrackSelection(track, album);
+                String key = track.name.toLowerCase(Locale.ROOT);
+                groupedTracks.computeIfAbsent(key, k -> new ArrayList<>()).add(selection);
+            }
+        }
+
+        Map<String, TrackSelection> canonicalSelections = new HashMap<>();
+        for (Map.Entry<String, List<TrackSelection>> entry : groupedTracks.entrySet()) {
+            TrackSelection preferred = choosePreferredSelection(entry.getValue());
+            if (preferred != null) {
+                canonicalSelections.put(entry.getKey(), preferred);
+            }
+        }
+
+        if (canonicalSelections.isEmpty()) {
+            return null;
+        }
+
         Random random = new Random();
-        Album randomAlbum = albums.get(random.nextInt(albums.size()));
-        Track randomTrack = randomAlbum.tracks.get(random.nextInt(randomAlbum.tracks.size()));
+        List<TrackSelection> canonicalList = new ArrayList<>(canonicalSelections.values());
+        TrackSelection chosen = canonicalList.get(random.nextInt(canonicalList.size()));
 
         GameState state = new GameState();
         state.artistId = artistId;
         state.artistName = finalArtistName;
         state.albums = albums;
-        state.randomAlbum = randomAlbum;
-        state.randomTrack = randomTrack;
+        state.randomAlbum = chosen.album;
+        state.randomTrack = chosen.track;
         state.board = new Board();
 
-        Map<String, TrackSelection> trackLookup = new HashMap<>();
-        for (Album album : albums) {
-            for (Track track : album.tracks) {
-                String key = track.name.toLowerCase();
-                trackLookup.putIfAbsent(key, new TrackSelection(track, album));
-            }
-        }
-
-        state.trackLookup = trackLookup;
-        state.possibleTracks = new ArrayList<>(trackLookup.keySet());
+        state.trackLookup = canonicalSelections;
+        state.possibleTracks = new ArrayList<>(canonicalSelections.keySet());
         Collections.sort(state.possibleTracks);
 
         return state;
+    }
+
+    private static TrackSelection choosePreferredSelection(List<TrackSelection> selections) {
+        return selections.stream().min(Musicadle::compareTrackSelection).orElse(null);
+    }
+
+    private static int compareTrackSelection(TrackSelection a, TrackSelection b) {
+        boolean aPreferredName = isPreferredAlbumName(a.album.name);
+        boolean bPreferredName = isPreferredAlbumName(b.album.name);
+        if (aPreferredName != bPreferredName) {
+            return Boolean.compare(!aPreferredName, !bPreferredName);
+        }
+
+        LocalDate aDate = parseReleaseDate(a.album.releaseDate);
+        LocalDate bDate = parseReleaseDate(b.album.releaseDate);
+        int dateComparison = aDate.compareTo(bDate);
+        if (dateComparison != 0) {
+            return dateComparison;
+        }
+
+        int albumNameComparison = a.album.name.compareToIgnoreCase(b.album.name);
+        if (albumNameComparison != 0) {
+            return albumNameComparison;
+        }
+
+        return Integer.compare(a.track.trackNumber, b.track.trackNumber);
+    }
+
+    private static boolean isPreferredAlbumName(String albumName) {
+        if (albumName == null) {
+            return true;
+        }
+        String lower = albumName.toLowerCase(Locale.ROOT);
+        return !(lower.contains("deluxe") || lower.contains("bonus") || lower.contains("version"));
+    }
+
+    private static LocalDate parseReleaseDate(String releaseDate) {
+        if (releaseDate == null || releaseDate.isEmpty()) {
+            return LocalDate.MAX;
+        }
+
+        try {
+            if (releaseDate.length() == 4) {
+                return LocalDate.of(Integer.parseInt(releaseDate), 1, 1);
+            }
+            if (releaseDate.length() == 7) {
+                return LocalDate.parse(releaseDate + "-01");
+            }
+            return LocalDate.parse(releaseDate);
+        } catch (NumberFormatException | DateTimeParseException e) {
+            return LocalDate.MAX;
+        }
     }
 
     private static GuessResult processGuess(GameState state, String guessInput) {
