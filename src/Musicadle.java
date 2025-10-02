@@ -20,8 +20,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class Musicadle {
-    private static final String CLIENT_ID = "CLIENT_ID";
-    private static final String CLIENT_SECRET = "CLIENT_SECRET";
+    private static final String CLIENT_ID = "";
+    private static final String CLIENT_SECRET = "";
     private static String accessToken;
     private static final ObjectMapper mapper = new ObjectMapper();
 
@@ -241,23 +241,23 @@ public class Musicadle {
         }
 
         if (guessedTrack.features && state.randomTrack.features) {
-            state.board.ft[index] = "Features ✅";
+            state.board.ft[index] = "Con colaboraciones ✅";
         } else if (!guessedTrack.features && !state.randomTrack.features) {
-            state.board.ft[index] = "No features ✅";
+            state.board.ft[index] = "Sin colaboraciones ✅";
         } else if (guessedTrack.features) {
-            state.board.ft[index] = "Features";
+            state.board.ft[index] = "Con colaboraciones";
         } else {
-            state.board.ft[index] = "No features";
+            state.board.ft[index] = "Sin colaboraciones";
         }
 
         if (guessedTrack.explicit && state.randomTrack.explicit) {
-            state.board.explicit[index] = "Explicit ✅";
+            state.board.explicit[index] = "Explícita ✅";
         } else if (!guessedTrack.explicit && !state.randomTrack.explicit) {
-            state.board.explicit[index] = "Not explicit ✅";
+            state.board.explicit[index] = "No explícita ✅";
         } else if (guessedTrack.explicit) {
-            state.board.explicit[index] = "Explicit";
+            state.board.explicit[index] = "Explícita";
         } else {
-            state.board.explicit[index] = "Not explicit";
+            state.board.explicit[index] = "No explícita";
         }
 
         if (guessedTrack.name.equals(state.randomTrack.name)) {

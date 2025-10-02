@@ -1,0 +1,226 @@
+:root {
+    color-scheme: light dark;
+    --bg: #0f172a;
+    --card: rgba(15, 23, 42, 0.85);
+    --accent: #22d3ee;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+}
+
+body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 2rem 1rem 4rem;
+}
+
+.container {
+    width: min(960px, 100%);
+    background: var(--card);
+    border-radius: 18px;
+    padding: 2.5rem 2rem;
+    box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(18px);
+}
+
+h1 {
+    font-size: clamp(2rem, 4vw, 3rem);
+    margin: 0 0 1rem;
+    text-align: center;
+}
+
+p.subtitle {
+    text-align: center;
+    color: var(--muted);
+    margin-bottom: 2rem;
+}
+
+form {
+    display: grid;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.artist-controls .form-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+label {
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+input, button, select {
+    font: inherit;
+    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    background: rgba(15, 23, 42, 0.6);
+    color: inherit;
+    outline: none;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+input:focus, button:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.3);
+}
+
+input.locked {
+    background: rgba(34, 211, 238, 0.15);
+    border-color: rgba(34, 211, 238, 0.65);
+    color: #0f172a;
+    font-weight: 600;
+    cursor: not-allowed;
+}
+
+button {
+    cursor: pointer;
+    background: linear-gradient(135deg, #22d3ee, #0ea5e9);
+    color: #0f172a;
+    font-weight: 700;
+    border: none;
+}
+
+button:hover {
+    transform: translateY(-1px);
+}
+
+button.secondary {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+button.secondary:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.status {
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
+    background: rgba(14, 165, 233, 0.15);
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    color: #bae6fd;
+    margin-bottom: 1.5rem;
+}
+
+.error {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(248, 113, 113, 0.4);
+    color: #fecaca;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: rgba(15, 23, 42, 0.7);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+th, td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+thead {
+    background: rgba(15, 23, 42, 0.85);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 0.8rem;
+}
+
+tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.track-list {
+    max-height: 200px;
+    overflow-y: auto;
+    border-radius: 12px;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(148, 163, 184, 0.15);
+    padding: 1rem;
+    display: grid;
+    gap: 0.4rem;
+}
+
+.track-list span {
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+.guess-field {
+    position: relative;
+}
+
+.suggestions {
+    position: absolute;
+    top: calc(100% + 0.25rem);
+    left: 0;
+    right: 0;
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: 12px;
+    padding: 0.35rem 0;
+    box-shadow: 0 15px 30px rgba(15, 23, 42, 0.45);
+    z-index: 10;
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.suggestions button {
+    width: 100%;
+    text-align: left;
+    padding: 0.65rem 1rem;
+    background: transparent;
+    color: inherit;
+    border: none;
+    border-radius: 0;
+    font-weight: 500;
+}
+
+.suggestions button:hover,
+.suggestions button:focus {
+    background: rgba(34, 211, 238, 0.15);
+    border: none;
+    color: var(--accent);
+}
+
+.suggestions-empty {
+    padding: 0.65rem 1rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+.hidden {
+    display: none !important;
+}
+
+@media (max-width: 720px) {
+    body {
+        padding: 1.5rem 1rem;
+    }
+    table {
+        font-size: 0.85rem;
+    }
+    th, td {
+        padding: 0.6rem 0.75rem;
+    }
+}
