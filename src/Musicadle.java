@@ -20,8 +20,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class Musicadle {
-    private static final String CLIENT_ID = "CLIENT_ID";
-    private static final String CLIENT_SECRET = "CLIENT_SECRET";
+    private static final String CLIENT_ID = "";
+    private static final String CLIENT_SECRET = "";
     private static String accessToken;
     private static final ObjectMapper mapper = new ObjectMapper();
 
@@ -48,7 +48,7 @@ public class Musicadle {
         }
 
         HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
-        server.createContext("/", new StaticFileHandler("web/index.html"));
+        server.createContext("/", new WebStaticHandler("web"));
         server.createContext("/api/game", new GameHandler());
         server.createContext("/api/game/", new GuessHandler());
 
@@ -241,23 +241,23 @@ public class Musicadle {
         }
 
         if (guessedTrack.features && state.randomTrack.features) {
-            state.board.ft[index] = "Features ✅";
+            state.board.ft[index] = "Con colaboraciones ✅";
         } else if (!guessedTrack.features && !state.randomTrack.features) {
-            state.board.ft[index] = "No features ✅";
+            state.board.ft[index] = "Sin colaboraciones ✅";
         } else if (guessedTrack.features) {
-            state.board.ft[index] = "Features";
+            state.board.ft[index] = "Con colaboraciones";
         } else {
-            state.board.ft[index] = "No features";
+            state.board.ft[index] = "Sin colaboraciones";
         }
 
         if (guessedTrack.explicit && state.randomTrack.explicit) {
-            state.board.explicit[index] = "Explicit ✅";
+            state.board.explicit[index] = "Explícita ✅";
         } else if (!guessedTrack.explicit && !state.randomTrack.explicit) {
-            state.board.explicit[index] = "Not explicit ✅";
+            state.board.explicit[index] = "No explícita ✅";
         } else if (guessedTrack.explicit) {
-            state.board.explicit[index] = "Explicit";
+            state.board.explicit[index] = "Explícita";
         } else {
-            state.board.explicit[index] = "Not explicit";
+            state.board.explicit[index] = "No explícita";
         }
 
         if (guessedTrack.name.equals(state.randomTrack.name)) {
@@ -303,11 +303,11 @@ public class Musicadle {
         }
     }
 
-    private static class StaticFileHandler implements HttpHandler {
-        private final String filePath;
+    private static class WebStaticHandler implements HttpHandler {
+        private final String baseDir;
 
-        StaticFileHandler(String filePath) {
-            this.filePath = filePath;
+        WebStaticHandler(String baseDir) {
+            this.baseDir = baseDir;
         }
 
         @Override
@@ -316,17 +316,27 @@ public class Musicadle {
                 exchange.sendResponseHeaders(405, -1);
                 return;
             }
+            String path = exchange.getRequestURI().getPath();
+            if (path.equals("/")) path = "/index.html";
+            String filePath = baseDir + path;
+            java.nio.file.Path fsPath = java.nio.file.Paths.get(filePath);
 
-            try {
-                String content = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(filePath)), StandardCharsets.UTF_8);
-                Headers headers = exchange.getResponseHeaders();
-                headers.set("Content-Type", "text/html; charset=utf-8");
-                exchange.sendResponseHeaders(200, content.getBytes(StandardCharsets.UTF_8).length);
-                try (OutputStream os = exchange.getResponseBody()) {
-                    os.write(content.getBytes(StandardCharsets.UTF_8));
-                }
-            } catch (IOException e) {
+            if (!java.nio.file.Files.exists(fsPath)) {
                 exchange.sendResponseHeaders(404, -1);
+                return;
+            }
+
+            String contentType = "text/plain";
+            if (path.endsWith(".html")) contentType = "text/html; charset=utf-8";
+            else if (path.endsWith(".css")) contentType = "text/css; charset=utf-8";
+            else if (path.endsWith(".js")) contentType = "application/javascript; charset=utf-8";
+
+            byte[] content = java.nio.file.Files.readAllBytes(fsPath);
+            Headers headers = exchange.getResponseHeaders();
+            headers.set("Content-Type", contentType);
+            exchange.sendResponseHeaders(200, content.length);
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(content);
             }
         }
     }
