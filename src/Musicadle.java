@@ -22,8 +22,8 @@ import java.time.format.DateTimeParseException;
 import java.util.*;
 
 public class Musicadle {
-    private static final String CLIENT_ID = "6ea15620e27b42469bf4eab681ec72a9";
-    private static final String CLIENT_SECRET = "9467151bb66843a9999131cde7fb8834";
+    private static final String CLIENT_ID = "";
+    private static final String CLIENT_SECRET = "";
     private static String accessToken;
     private static final ObjectMapper mapper = new ObjectMapper();
 
