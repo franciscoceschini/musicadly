@@ -21,7 +21,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.*;
 
-public class Musicadle {
+public class Musicadly {
     private static final String CLIENT_ID = "";
     private static final String CLIENT_SECRET = "";
     private static String accessToken;
@@ -201,7 +201,7 @@ public class Musicadle {
     }
 
     private static TrackSelection choosePreferredSelection(List<TrackSelection> selections) {
-        return selections.stream().min(Musicadle::compareTrackSelection).orElse(null);
+        return selections.stream().min(Musicadly::compareTrackSelection).orElse(null);
     }
 
     private static int compareTrackSelection(TrackSelection a, TrackSelection b) {
