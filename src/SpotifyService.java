@@ -17,8 +17,8 @@ public class SpotifyService {
     private final ObjectMapper mapper;
 
     public SpotifyService(String clientId, String clientSecret) {
-        this.clientId = "6ea15620e27b42469bf4eab681ec72a9";
-        this.clientSecret = "9467151bb66843a9999131cde7fb8834";
+        this.clientId = "";
+        this.clientSecret = "";
         this.mapper = new ObjectMapper();
     }
 
@@ -99,4 +99,5 @@ public class SpotifyService {
 
         return albums;
     }
+
 }
