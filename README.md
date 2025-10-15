@@ -1,0 +1,3 @@
+## Musicadly
+
+El juego consiste en tener que adivinar una canción aleatoria del artista que hayas elegido, donde mientras mas intentes adivnar, mas facil sera dadas las pistas que se te brindaran. Una vez que se realiza un intento, se comparan las características (álbum, número de canción dentro de ese álbum, duración, si tiene colaboración y si es explícita) de la canción probada con las de la canción a adivinar, una vez comparadas las características, el usuario obtendrá pistas para llegar a la suposición correcta en un máximo de ocho intentos.
