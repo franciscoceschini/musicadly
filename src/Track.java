@@ -8,14 +8,6 @@ public class Track {
     public Track() {
     }
 
-    public Track(String name, int trackNumber, double duration, boolean features, boolean explicit) {
-        this.name = name;
-        this.trackNumber = trackNumber;
-        this.duration = duration;
-        this.features = features;
-        this.explicit = explicit;
-    }
-
     public String getName() {
         return name;
     }

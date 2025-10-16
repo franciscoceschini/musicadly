@@ -81,7 +81,7 @@ public class GameController {
 
         int albumComparison = guessedAlbum.getReleaseDate().compareTo(randomAlbum.getReleaseDate());
         if (albumComparison < 0) {
-            board.setAlbum(attempts, guessedAlbum.getName() + "→");
+            board.setAlbum(attempts, guessedAlbum.getName() + "↑");
         } else if (albumComparison > 0) {
             board.setAlbum(attempts, guessedAlbum.getName() + "↓");
         } else {
@@ -89,7 +89,7 @@ public class GameController {
         }
 
         if (guessedTrack.getTrackNumber() < randomTrack.getTrackNumber()) {
-            board.setTrackNo(attempts, guessedTrack.getTrackNumber() + "→");
+            board.setTrackNo(attempts, guessedTrack.getTrackNumber() + "↑");
         } else if (guessedTrack.getTrackNumber() > randomTrack.getTrackNumber()) {
             board.setTrackNo(attempts, guessedTrack.getTrackNumber() + "↓");
         } else {
@@ -97,7 +97,7 @@ public class GameController {
         }
 
         if (guessedTrack.getDuration() < randomTrack.getDuration()) {
-            board.setLength(attempts, formatDuration(guessedTrack.getDuration()) + "→");
+            board.setLength(attempts, formatDuration(guessedTrack.getDuration()) + "↑");
         } else if (guessedTrack.getDuration() > randomTrack.getDuration()) {
             board.setLength(attempts, formatDuration(guessedTrack.getDuration()) + "↓");
         } else {
