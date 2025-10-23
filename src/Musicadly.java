@@ -9,6 +9,7 @@ public class Musicadly {
         Scanner scanner = new Scanner(System.in);
 
         System.out.println("🎵 ¡Bienvenido a Musicadly! 🎵");
+        System.out.println("espero que la pasen joya");
         System.out.print("Elegí un artista: ");
         String artistName = scanner.nextLine();
 
