@@ -33,14 +33,16 @@ public class GameController {
         boolean win = false;
 
         while (!win && lives > 0) {
-            System.out.print("Guess the song: ");
+            System.out.print("Escribí una cancion: ");
             String guess = scanner.nextLine().toLowerCase();
 
             while (!possibleTracks.contains(guess) || guesses.contains(guess)) {
                 if (!possibleTracks.contains(guess)) {
-                    System.out.print("NOT A SONG. Guess the song: ");
+                    System.out.println("No se encuentra la canción en la lista de canciones.");
+                    System.out.print("Escribí una cancion: ");
                 } else {
-                    System.out.print("Already guessed. Guess another the song: ");
+                    System.out.println("Esta ya la pusiste antes.");
+                    System.out.print("Escribí una cancion: ");
                 }
                 guess = scanner.nextLine().toLowerCase();
             }

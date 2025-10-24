@@ -2,10 +2,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.*;
 
 public class Musicadly {
-    private static final String CLIENT_ID = "";
-    private static final String CLIENT_SECRET = "";
-
-    static void main(String[] args) {
+    public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
 
         System.out.println("🎵 ¡Bienvenido a Musicadly! 🎵");
@@ -15,7 +12,7 @@ public class Musicadly {
         System.out.println("🎵 Iniciando Musicadly... 🎵");
 
         try {
-            SpotifyService spotifyService = new SpotifyService(CLIENT_ID, CLIENT_SECRET);
+            SpotifyService spotifyService = new SpotifyService();
             spotifyService.authenticate();
 
             JsonNode artistData = spotifyService.searchArtist(artistName);

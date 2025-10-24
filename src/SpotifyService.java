@@ -11,19 +11,17 @@ import java.util.Base64;
 import java.util.List;
 
 public class SpotifyService {
-    private final String clientId;
-    private final String clientSecret;
+    private static final String CLIENT_ID = "6ea15620e27b42469bf4eab681ec72a9";
+    private static final String CLIENT_SECRET = "9467151bb66843a9999131cde7fb8834";
     private String accessToken;
-    private final ObjectMapper mapper;
+    public ObjectMapper mapper;
 
-    public SpotifyService(String clientId, String clientSecret) {
-        this.clientId = "6ea15620e27b42469bf4eab681ec72a9";
-        this.clientSecret = "9467151bb66843a9999131cde7fb8834";
+    public SpotifyService() {
         this.mapper = new ObjectMapper();
     }
 
     public void authenticate() throws Exception {
-        String auth = clientId + ":" + clientSecret;
+        String auth = CLIENT_ID + ":" + CLIENT_SECRET;
         String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
 
         URL url = new URL("https://accounts.spotify.com/api/token");
@@ -66,13 +64,13 @@ public class SpotifyService {
     }
 
     public JsonNode searchArtist(String artistName) throws Exception {
-        String encoded = URLEncoder.encode(artistName, StandardCharsets.UTF_8.toString());
+        String encoded = URLEncoder.encode(artistName, StandardCharsets.UTF_8);
         JsonNode result = makeSpotifyRequest("search?q=" + encoded + "&type=artist&limit=1");
         return result.get("artists").get("items").get(0);
     }
 
     public List<Album> getArtistAlbums(String artistId) throws Exception {
-        JsonNode albumsData = makeSpotifyRequest("artists/" + artistId + "/albums?include_groups=album");
+        JsonNode albumsData = makeSpotifyRequest("artists/" + artistId + "/albums?include_groups=album,single,compilation&market=AR&limit=50");
         List<Album> albums = new ArrayList<>();
 
         for (JsonNode albumItem : albumsData.get("items")) {
