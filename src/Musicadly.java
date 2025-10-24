@@ -5,7 +5,9 @@ public class Musicadly {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
 
+        System.out.println("creadores: francico, javier y dante")
         System.out.println("🎵 ¡Bienvenido a Musicadly! 🎵");
+        System.out.println("¡disfruten este juego!");
         System.out.print("Elegí un artista: ");
         String artistName = scanner.nextLine();
 
