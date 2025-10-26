@@ -20,11 +20,16 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.*;
+import java.time.Instant;
 
 public class Musicadly {
-    private static final String CLIENT_ID = "";
-    private static final String CLIENT_SECRET = "";
+    private static final String CLIENT_ID =
+            java.util.Objects.toString(System.getenv("SPOTIFY_CLIENT_ID"), "");
+    private static final String CLIENT_SECRET =
+            java.util.Objects.toString(System.getenv("SPOTIFY_CLIENT_SECRET"), "");
     private static String accessToken;
+    private static long tokenExpiresAtEpochSec = 0L;
+    private static final long TOKEN_SAFETY_MARGIN_SECONDS = 120;
     private static final ObjectMapper mapper = new ObjectMapper();
 
     private static final Map<String, GameState> games = new HashMap<>();
@@ -61,7 +66,7 @@ public class Musicadly {
 
     private static void authenticate() throws Exception {
         if (CLIENT_ID.isEmpty() || CLIENT_SECRET.isEmpty()) {
-            throw new IllegalStateException("Las credenciales de Spotify no están configuradas. Define SPOTIFY_CLIENT_ID y SPOTIFY_CLIENT_SECRET.");
+            throw new IllegalStateException("SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET no configuradas como variables de entorno.");
         }
 
         String auth = CLIENT_ID + ":" + CLIENT_SECRET;
@@ -77,40 +82,85 @@ public class Musicadly {
         String body = "grant_type=client_credentials";
         conn.getOutputStream().write(body.getBytes(StandardCharsets.UTF_8));
 
-        BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+        int code = conn.getResponseCode();
+        if (code < 200 || code >= 300) {
+            BufferedReader er = new BufferedReader(new InputStreamReader(conn.getErrorStream(), StandardCharsets.UTF_8));
+            StringBuilder esb = new StringBuilder(); String ln;
+            while ((ln = er.readLine()) != null) esb.append(ln);
+            er.close();
+            throw new IOException("Error pidiendo token a Spotify (" + code + "): " + esb);
+        }
+
+        BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
         StringBuilder response = new StringBuilder();
         String line;
-        while ((line = reader.readLine()) != null) {
-            response.append(line);
-        }
+        while ((line = reader.readLine()) != null) response.append(line);
         reader.close();
 
         JsonNode json = mapper.readTree(response.toString());
         accessToken = json.get("access_token").asText();
+
+        long expiresIn = json.has("expires_in") ? json.get("expires_in").asLong(3600) : 3600L;
+        tokenExpiresAtEpochSec = Instant.now().getEpochSecond() + expiresIn;
     }
 
     private static void ensureAuthenticated() throws Exception {
-        if (accessToken == null || accessToken.isEmpty()) {
+        long now = Instant.now().getEpochSecond();
+        if (accessToken == null || accessToken.isEmpty() ||
+                now >= (tokenExpiresAtEpochSec - TOKEN_SAFETY_MARGIN_SECONDS)) {
             authenticate();
         }
     }
 
+
     private static JsonNode makeSpotifyRequest(String endpoint) throws Exception {
+        ensureAuthenticated();
+
+        JsonNode result = doSpotifyGet(endpoint);
+        if (result != null) return result;
+
+        authenticate();
+        result = doSpotifyGet(endpoint);
+        if (result != null) return result;
+
+        throw new IOException("Fallo al llamar a Spotify tras reintentar: " + endpoint);
+    }
+
+    private static JsonNode doSpotifyGet(String endpoint) throws Exception {
         URL url = new URL("https://api.spotify.com/v1/" + endpoint);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("GET");
         conn.setRequestProperty("Authorization", "Bearer " + accessToken);
+        conn.setRequestProperty("Accept", "application/json");
 
-        BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-        StringBuilder response = new StringBuilder();
-        String line;
-        while ((line = reader.readLine()) != null) {
-            response.append(line);
+        int code = conn.getResponseCode();
+        // Si 2xx → parsea normal
+        if (code >= 200 && code < 300) {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
+            StringBuilder response = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) response.append(line);
+            reader.close();
+            return mapper.readTree(response.toString());
         }
-        reader.close();
 
-        return mapper.readTree(response.toString());
+        if (code == 401) {
+            try {
+                BufferedReader er = new BufferedReader(new InputStreamReader(conn.getErrorStream(), StandardCharsets.UTF_8));
+                StringBuilder esb = new StringBuilder(); String ln;
+                while ((ln = er.readLine()) != null) esb.append(ln);
+                er.close();
+            } catch (Exception ignored) {}
+            return null;
+        }
+
+        BufferedReader er = new BufferedReader(new InputStreamReader(conn.getErrorStream(), StandardCharsets.UTF_8));
+        StringBuilder esb = new StringBuilder(); String ln;
+        while ((ln = er.readLine()) != null) esb.append(ln);
+        er.close();
+        throw new IOException("HTTP " + code + " de Spotify en " + endpoint + ": " + esb);
     }
+
 
     private static JsonNode searchArtist(String artistName) throws Exception {
         String encoded = URLEncoder.encode(artistName, StandardCharsets.UTF_8.toString());
@@ -119,7 +169,7 @@ public class Musicadly {
     }
 
     private static List<Album> getArtistAlbums(String artistId) throws Exception {
-        JsonNode albumsData = makeSpotifyRequest("artists/" + artistId + "/albums?include_groups=album");
+        JsonNode albumsData = makeSpotifyRequest("artists/" + artistId + "/albums?include_groups=album,compilation&market=AR&limit=50");
         List<Album> albums = new ArrayList<>();
 
         for (JsonNode albumItem : albumsData.get("items")) {
@@ -258,13 +308,13 @@ public class Musicadly {
         }
 
         if (guessInput == null || guessInput.trim().isEmpty()) {
-            return new GuessResult(false, "Ingresa un nombre de canción válido.", "");
+            return new GuessResult(false, "Ingresá un nombre de canción válido.", "");
         }
 
         String guess = guessInput.trim().toLowerCase();
 
         if (!state.trackLookup.containsKey(guess)) {
-            return new GuessResult(false, "No es una canción válida de este artista. Intenta otra vez.", "");
+            return new GuessResult(false, "Esta no es una canción válida. Intentá otra vez.", "");
         }
 
         if (state.guesses.contains(guess)) {
@@ -600,4 +650,14 @@ public class Musicadly {
             return win || lives <= 0;
         }
     }
+public static void main(String[] args) {
+    System.out.println("=== Iniciando servidor Musicadly ===");
+    try {
+        startServer();
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
 }
+
+}
+
